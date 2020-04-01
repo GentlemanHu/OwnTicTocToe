@@ -1,8 +1,6 @@
 import java.io.*;
 import java.net.*;
 
-
-
 /*
  * @Author: Gentleman.Hu 
  * @Date: 2020-03-31 11:32:56 
@@ -23,7 +21,7 @@ public class Client {
     private ReadThread readThread;
     private PrintWriter writer;
     private BufferedReader reader;
-    private String msg ;
+    private String msg;
 
     public static void main(String[] args) {
     }
@@ -70,6 +68,7 @@ public class Client {
         private Socket socket;
         private Client client;
         private String msg;
+
         public ReadThread(Socket socket, Client client) {
             this.socket = socket;
             this.client = client;
@@ -87,7 +86,10 @@ public class Client {
             while (true) {
                 try {
                     String response = reader.readLine();
-                    msg = response;
+                    if (response != null && response != "") {
+                        msg = response;
+                    }
+
                     // buttons[Integer.parseInt(msg)].doClick();
                     // buttons[Integer.parseInt(msg)].setEnabled(false);
                     // System.out.println("\n" + response);
@@ -136,7 +138,6 @@ public class Client {
         }
 
         public void run() {
-            writer.println();
             Console console = System.console();
             // String userName = console.readLine("\nEnter your name: ");
             // writer.println(userName);
@@ -145,7 +146,8 @@ public class Client {
 
             do {
                 text = console.readLine();
-                writer.println(text);
+                if (text != null && text != "")
+                    writer.println(text);
             } while (!text.equals("END"));
 
             try {

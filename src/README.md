@@ -6,6 +6,7 @@
   - [x] 绘制button图案
   - [x] button结束时颜色
   - [x] button胜利闪烁
+  - [ ] 选择模式(本地离线--双端对战),或者添加机器人
   - [ ] 选择标记,先手选择
   - [ ] ~~日志系统~~
   
@@ -19,7 +20,9 @@
   - [x] 基本服务器-客户端通信
   - [x] 客户端-服务器-客户端 转发数据
     - > [copy](https://www.codejava.net/java-se/networking/how-to-create-a-chat-console-application-in-java-using-socket)
-  - [ ] 步骤锁,防止同时点击
+  - [x] 双端同步
+  - [ ] 结束时延迟重置,防止冲突(锁定)
+  - [x] 步骤锁,防止同时点击
   
 - 完美化
   - [ ] 代码封装完美

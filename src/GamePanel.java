@@ -35,9 +35,10 @@ public class GamePanel extends JFrame implements ActionListener {
     private static Winner winner = null;
     private static JButton[] buttons = new JButton[9];
     private static int key = 0;
+    private static boolean signal = false;
     private volatile Blinker blinker;
     private volatile static Timer timer;
-    private static Thread readerThread;
+    private static Thread validator;
     private static ArrayList<String> list, buttonlist;
     private static Client client = new Client("123.57.248.202");
     private static ArrayList<Timer> timers = new ArrayList<Timer>();
@@ -58,27 +59,30 @@ public class GamePanel extends JFrame implements ActionListener {
     private void init() {
         client.execute();
         rendPanel();
-        try {
-            new Thread(new Runnable() {
+            validator=new Thread(new Runnable() {
                 @Override
                 public void run() {
                     while (true) {
                         String tmp = client.getMes();
-                        if (tmp != null) {
+                        if (tmp != null&&!tmp.contains("ok")) {
+                            signal = true;
+
+                            unlocked();
                             buttons[Integer.parseInt(tmp)].doClick();
                             buttons[Integer.parseInt(tmp)].setEnabled(false);
                             client.setMessage2null();
+
                             updatePanel();
-                            key++;
                         }
-                        decision();
+                        if (decision()) {
+                            // 再重置上次传送的信息,防止点击确定后又发送,导致按钮初始化时点击上次最后的按钮
+                            client.setMessage2null();
+                            continue;
+                        }
                     }
                 }
-            }).start();
-        } catch (Exception e) {
-            // TODO: handle exception
-        }
-
+            });
+            validator.start();
     }
 
     public JButton[] getButtons() {
@@ -91,6 +95,8 @@ public class GamePanel extends JFrame implements ActionListener {
         // gamepanel creation
         gamePanel.setVisible(true);
         gamePanel.setLayout(new GridLayout(3, 3));
+        // store buttons' location that location will remove as plays goes
+        buttonlist = new ArrayList<String>();
         for (int i = 0; i < 9; i++) {
             buttons[i] = new JButton();
             buttons[i].setSize(500 / 3, 500 / 3);
@@ -99,10 +105,9 @@ public class GamePanel extends JFrame implements ActionListener {
             buttons[i].setActionCommand("" + i);
             buttons[i].setFont(new Font("Fira Code", 0, 90));
             buttons[i].setVisible(true);
+            buttonlist.add(Integer.toString(i));
             gamePanel.add(buttons[i]);
         }
-        buttonlist = new ArrayList<String>();
-
         JTextArea messageArea = new JTextArea();
         // messageArea.setOpaque(true);
         messageArea.setText("tekljdsflsjdflk");
@@ -144,11 +149,10 @@ public class GamePanel extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         // TODO Auto-generated method stub
         String str = e.getActionCommand();
-        // 点按钮后发送按钮位置,同步两个端之间的信息
-        client.sendMes(str);
-        System.out.println(str);
+
+        // System.out.println(str);
         //
-        buttonlist.add(str);
+        buttonlist.remove(str);
         switch (str) {
             case "0":
                 buttons[0].setText(whatText(key));
@@ -190,6 +194,14 @@ public class GamePanel extends JFrame implements ActionListener {
                 break;
         }
 
+        if (!signal) {
+            // 点按钮后发送按钮位置,同步两个端之间的信息
+            client.sendMes(str);
+            locked();
+        }
+        if (signal) {
+            signal = false;
+        }
         key++;
     }
 
@@ -264,15 +276,20 @@ public class GamePanel extends JFrame implements ActionListener {
             buttons[i].repaint();
         }
         key = 0;
-
+        signal = false;
         for (Timer timer : timers) {
             timer.stop();
             timer = null;
         }
 
+        // validator.start();
         buttonlist = new ArrayList<String>();
         list = new ArrayList<String>();
         timers = new ArrayList<Timer>();
+        // 把所有按钮添加到里边
+        for (int i = 0; i < 9; i++) {
+            buttonlist.add(Integer.toString(i));
+        }
     }
 
     // 判断是否button内容为空,防止检测相同图案时冲突.
@@ -295,9 +312,13 @@ public class GamePanel extends JFrame implements ActionListener {
         for (JButton jButton : buttons) {
             jButton.setEnabled(false);
         }
-        // 把已经点过的重设置不可点击
+    }
+
+    public void unlocked() {
+        // 把已经点过的重设置不可点击并把剩余可走位置解锁
         for (String i : buttonlist) {
             buttons[Integer.parseInt(i)].setEnabled(true);
+            System.out.println(Integer.parseInt(i));
         }
     }
 
@@ -323,8 +344,9 @@ public class GamePanel extends JFrame implements ActionListener {
         updatePanel();
     }
 
-    public void decision() {
+    public boolean decision() {
         if (judge()) {
+            boolean sure = false;
             JOptionPane pane = new JOptionPane("~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
             JDialog dialog = pane.createDialog(null, "游戏结束!");
             // JOptionPane.showMessageDialog(null, "~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
@@ -332,12 +354,21 @@ public class GamePanel extends JFrame implements ActionListener {
             dialog.setSize(new Dimension(400, 200));
             dialog.setDefaultCloseOperation(0);
             dialog.setVisible(true);
+            // validator.stop();
+            do {
+                client.sendMes("ok");
+                locked();
+            } while (client.getMes() == "ok");
             reset();
+            return true;
         } else if (!isEmptyButton()) {
             winner = Winner.DRAW;
             JOptionPane.showMessageDialog(null, "平局!!点击确定重置游戏!");
             reset();
+            return true;
         }
+
+        return false;
     }
 
     class Blinker implements ActionListener {
