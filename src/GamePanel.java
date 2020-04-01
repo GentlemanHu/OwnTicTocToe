@@ -1,14 +1,16 @@
+
 /*
  * @Author: Gentleman.Hu 
  * @Date: 2020-03-28 22:25:49 
  * @Last Modified by: Gentleman.Hu
- * @Last Modified time: 2020-03-30 14:23:18
+ * @Last Modified time: 2020-03-31 22:30:35
  */
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.Timer;
 
 import java.awt.event.*;
@@ -29,13 +31,17 @@ public class GamePanel extends JFrame implements ActionListener {
      */
     private static final long serialVersionUID = 1552746400473185110L;
     private static final JPanel gamePanel = new JPanel();
+    private JFrame messagePanel = new JFrame("Message");
     private static Winner winner = null;
     private static JButton[] buttons = new JButton[9];
     private static int key = 0;
     private volatile Blinker blinker;
     private volatile static Timer timer;
-    private static ArrayList<String> list;
-    private static ArrayList<Timer> timers=new ArrayList<Timer>();
+    private static Thread readerThread;
+    private static ArrayList<String> list, buttonlist;
+    private static Client client = new Client("123.57.248.202");
+    private static ArrayList<Timer> timers = new ArrayList<Timer>();
+
     enum Winner {
         O, X, DRAW;
     }
@@ -50,12 +56,39 @@ public class GamePanel extends JFrame implements ActionListener {
     }
 
     private void init() {
+        client.execute();
         rendPanel();
+        try {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true) {
+                        String tmp = client.getMes();
+                        if (tmp != null) {
+                            buttons[Integer.parseInt(tmp)].doClick();
+                            buttons[Integer.parseInt(tmp)].setEnabled(false);
+                            client.setMessage2null();
+                            updatePanel();
+                            key++;
+                        }
+                        decision();
+                    }
+                }
+            }).start();
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+
+    }
+
+    public JButton[] getButtons() {
+        return buttons;
     }
 
     public void rendPanel() {
         this.rootPane.setPreferredSize(new Dimension(500, 500));
 
+        // gamepanel creation
         gamePanel.setVisible(true);
         gamePanel.setLayout(new GridLayout(3, 3));
         for (int i = 0; i < 9; i++) {
@@ -68,13 +101,36 @@ public class GamePanel extends JFrame implements ActionListener {
             buttons[i].setVisible(true);
             gamePanel.add(buttons[i]);
         }
+        buttonlist = new ArrayList<String>();
+
+        JTextArea messageArea = new JTextArea();
+        // messageArea.setOpaque(true);
+        messageArea.setText("tekljdsflsjdflk");
+        messageArea.setFont(new Font("Fira Code", 0, 30));
+        messageArea.setForeground(Color.BLUE);
+        messagePanel.add(messageArea);
+
+        // messagepanel creation
+        messagePanel.setUndecorated(true);
+        messagePanel.setOpacity(0.3f);
+        messagePanel.setBackground(Color.BLACK);
+        messagePanel.setSize(new Dimension(200, 500));
+        messagePanel.setVisible(true);
+
         add(gamePanel);
+        addComponentListener(new ComponentAdapter() {
+            public void componentMoved(ComponentEvent e) {
+                messagePanel.setLocation(getLocation().x - 200, getLocation().y + 20);
+                // System.out.println("nice!");
+            }
+        });
         setTitle("TicTocToe~~      made with love by Gentleman.Hu");
         setResizable(false);
         setDefaultCloseOperation(3);
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
+        setAlwaysOnTop(true);
     }
 
     public void updatePanel() {
@@ -87,8 +143,13 @@ public class GamePanel extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         // TODO Auto-generated method stub
-
-        switch (e.getActionCommand()) {
+        String str = e.getActionCommand();
+        // 点按钮后发送按钮位置,同步两个端之间的信息
+        client.sendMes(str);
+        System.out.println(str);
+        //
+        buttonlist.add(str);
+        switch (str) {
             case "0":
                 buttons[0].setText(whatText(key));
                 buttons[0].setEnabled(false);
@@ -128,25 +189,16 @@ public class GamePanel extends JFrame implements ActionListener {
             default:
                 break;
         }
+
         key++;
-        if (judge()) {
-            JOptionPane pane = new JOptionPane("~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
-            JDialog dialog = pane.createDialog(null, "游戏结束!");
-            // JOptionPane.showMessageDialog(null, "~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
-            dialog.setLocation(this.getLocation().x + 500, this.getLocation().y);
-            dialog.setSize(new Dimension(400, 200));
-            dialog.setDefaultCloseOperation(0);
-            dialog.setVisible(true);
-            reset();
-        } else if (!isEmptyButton()) {
-            winner = Winner.DRAW;
-            JOptionPane.showMessageDialog(null, "平局!!点击确定重置游戏!");
-            reset();
-        }
     }
 
     public String whatText(int key) {
         return (key % 2) == 0 ? "X" : "O";
+    }
+
+    public String whatTextNet(int key) {
+        return (key % 2) == 0 ? "O" : "X";
     }
 
     public boolean judge() {
@@ -155,13 +207,15 @@ public class GamePanel extends JFrame implements ActionListener {
         for (int i = 8; i >= 0; i--) {
             list.add(buttons[i].getText());
         }
-        Iterator<String> it = list.iterator();
-        while (it.hasNext()) {
-            System.out.print(it.next());
-        }
-        System.out.println("  ");
+
+        // 打印已经走得信息
+        // Iterator<String> it = list.iterator();
+        // while (it.hasNext()) {
+        // System.out.print(it.next());
+        // }
+        // System.out.println(" ");
         // 虽然代码量少,但是没找到办法判断是哪个,才疏博浅
-        //外层粗略判断,内层确定具体位置,以便凸显,可以显示两种的情况
+        // 外层粗略判断,内层确定具体位置,以便凸显,可以显示两种的情况
         if (getStr(3, 4, 5) || getStr(1, 4, 7) || getStr(0, 1, 2) || getStr(6, 7, 8) || getStr(0, 3, 6)
                 || getStr(2, 5, 8) || getStr(0, 4, 8) || getStr(2, 4, 6)) {
             if (getStr(3, 4, 5)) {
@@ -211,13 +265,14 @@ public class GamePanel extends JFrame implements ActionListener {
         }
         key = 0;
 
-        for(Timer timer:timers){
+        for (Timer timer : timers) {
             timer.stop();
-            timer=null;
+            timer = null;
         }
 
+        buttonlist = new ArrayList<String>();
         list = new ArrayList<String>();
-        timers=new ArrayList<Timer>();
+        timers = new ArrayList<Timer>();
     }
 
     // 判断是否button内容为空,防止检测相同图案时冲突.
@@ -235,14 +290,25 @@ public class GamePanel extends JFrame implements ActionListener {
         return false;
     }
 
+    // lock when another player is thinking
+    public void locked() {
+        for (JButton jButton : buttons) {
+            jButton.setEnabled(false);
+        }
+        // 把已经点过的重设置不可点击
+        for (String i : buttonlist) {
+            buttons[Integer.parseInt(i)].setEnabled(true);
+        }
+    }
+
     void setWinButtonColorAndWinner(int one, int two, int three) {
         buttons[one].setOpaque(true);
         buttons[two].setOpaque(true);
         buttons[three].setOpaque(true);
         // button闪烁synchronized
-        blinker=new Blinker(one, two, three);
+        blinker = new Blinker(one, two, three);
         timer = new Timer(500, blinker);
-        //将timer加入队列方便管理,在多达成情况下,并发了多个timer,在list可以方便全部stop
+        // 将timer加入队列方便管理,在多达成情况下,并发了多个timer,在list可以方便全部stop
         timers.add(timer);
 
         timer.start();
@@ -255,6 +321,23 @@ public class GamePanel extends JFrame implements ActionListener {
         }
 
         updatePanel();
+    }
+
+    public void decision() {
+        if (judge()) {
+            JOptionPane pane = new JOptionPane("~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
+            JDialog dialog = pane.createDialog(null, "游戏结束!");
+            // JOptionPane.showMessageDialog(null, "~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
+            dialog.setLocation(getLocation().x + 500, getLocation().y);
+            dialog.setSize(new Dimension(400, 200));
+            dialog.setDefaultCloseOperation(0);
+            dialog.setVisible(true);
+            reset();
+        } else if (!isEmptyButton()) {
+            winner = Winner.DRAW;
+            JOptionPane.showMessageDialog(null, "平局!!点击确定重置游戏!");
+            reset();
+        }
     }
 
     class Blinker implements ActionListener {
@@ -271,7 +354,7 @@ public class GamePanel extends JFrame implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             setColor(on ? Color.red : Color.white);
             on = !on;
-            System.out.println(++i);
+            // System.out.println(++i);
         }
 
         public void setColor(Color what) {

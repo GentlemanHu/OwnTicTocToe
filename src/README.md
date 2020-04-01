@@ -6,6 +6,7 @@
   - [x] 绘制button图案
   - [x] button结束时颜色
   - [x] button胜利闪烁
+  - [ ] 选择标记,先手选择
   - [ ] ~~日志系统~~
   
 - 裁判系统
@@ -15,4 +16,13 @@
     - [x] 多个timer并发消除
   
 - [ ] 多端联机
+  - [x] 基本服务器-客户端通信
+  - [x] 客户端-服务器-客户端 转发数据
+    - > [copy](https://www.codejava.net/java-se/networking/how-to-create-a-chat-console-application-in-java-using-socket)
+  - [ ] 步骤锁,防止同时点击
   
+- 完美化
+  - [ ] 代码封装完美
+  - [ ] 类编写完美
+  - [ ] 各类关系条理清晰
+  - [ ] 其他问题
