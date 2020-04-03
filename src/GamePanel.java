@@ -40,7 +40,7 @@ public class GamePanel extends JFrame implements ActionListener {
     private JFrame messagePanel = new JFrame("Message");
     private static Winner winner = null;
     private static JButton[] buttons = new JButton[9];
-    private static MyButton local,online;
+    private static MyButton local, online;
     private static int key = 0;
     private static boolean signal = false;
     private volatile Blinker blinker;
@@ -53,9 +53,14 @@ public class GamePanel extends JFrame implements ActionListener {
     private static Client client = new Client("123.57.248.202");
     private static ArrayList<Timer> timers = new ArrayList<Timer>();
     private static Calendar calendar = Calendar.getInstance();
+    private static Mode presentmode = Mode.LOCAL;
 
     enum Winner {
         O, X, DRAW;
+    }
+
+    enum Mode {
+        LOCAL, ONLINE;
     }
 
     public GamePanel() {
@@ -68,39 +73,44 @@ public class GamePanel extends JFrame implements ActionListener {
     }
 
     private void init() {
-        client.execute();
         rendPanel();
-            validator=new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    while (true) {
-                        String tmp = client.getMes();
-                        if (tmp != null&&!tmp.contains("ok")) {
-                            signal = true;
-
-                            unlocked();
-                            buttons[Integer.parseInt(tmp)].doClick();
-                            buttons[Integer.parseInt(tmp)].setEnabled(false);
-                            client.setMessage2null();
-
-                            //messageArea.append(tmp);
-                            
-                            updatePanel();
-                        }
-                        if (decision()) {
-                            // 再重置上次传送的信息,防止点击确定后又发送,导致按钮初始化时点击上次最后的按钮
-                            client.setMessage2null();
-                            continue;
-                        }
-                    }
-                }
-            });
-            validator.start();
-            
     }
 
     public JButton[] getButtons() {
         return buttons;
+    }
+
+    public boolean connectServer() {
+        boolean ok=client.execute();
+        
+        validator = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    String tmp = client.getMes();
+                    if (tmp != null && !tmp.contains("ok")) {
+                        signal = true;
+
+                        unlocked();
+                        buttons[Integer.parseInt(tmp)].doClick();
+                        buttons[Integer.parseInt(tmp)].setEnabled(false);
+                        client.setMessage2null();
+
+                        // messageArea.append(tmp);
+
+                        updatePanel();
+                    }
+                    if (decision()) {
+                        // 再重置上次传送的信息,防止点击确定后又发送,导致按钮初始化时点击上次最后的按钮
+                        client.setMessage2null();
+                        continue;
+                    }
+                }
+            }
+        });
+        validator.start();
+
+        return ok?true:false;
     }
 
     public void rendPanel() {
@@ -125,32 +135,35 @@ public class GamePanel extends JFrame implements ActionListener {
         messageArea = new JTextArea();
         messagePanel.setLayout(null);
         messageArea.setOpaque(true);
-        
+
         messageArea.setBackground(Color.black);
-        messageArea.setSize(200,380);
+        messageArea.setSize(200, 380);
         messageArea.setAutoscrolls(true);
         messageArea.setLineWrap(true);
         messageArea.setWrapStyleWord(false);
-        messageArea.setLocation(messagePanel.getLocation().x,messagePanel.getLocation().x);
+        messageArea.setLocation(messagePanel.getLocation().x, messagePanel.getLocation().x);
         messageArea.setFont(new Font("Fira Code", 0, 15));
-        JScrollPane jsp = new JScrollPane(messageArea);
-        jsp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        jsp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
         messageArea.setForeground(Color.BLUE);
-        messagePanel.add(messageArea);
+        JScrollPane jsp = new JScrollPane(messageArea);
 
+        jsp.setSize(200, 380);
+        jsp.setBorder(null);
+        jsp.setAutoscrolls(true);
+        jsp.setLocation(messagePanel.getLocation().x, messagePanel.getLocation().x);
+        jsp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        //jsp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+        messagePanel.getContentPane().add(jsp);
 
-        //add mode change button
+        // add mode change button
         local = new MyButton("本地玩");
         local.setActionCommand("local");
         online = new MyButton("在线玩");
         online.setActionCommand("online");
 
-        local.setLocation(messagePanel.getLocation().x+20,messagePanel.getLocation().y+400);
-        online.setLocation(messagePanel.getLocation().x+100,messagePanel.getLocation().y+400);
+        local.setLocation(messagePanel.getLocation().x + 20, messagePanel.getLocation().y + 400);
+        online.setLocation(messagePanel.getLocation().x + 100, messagePanel.getLocation().y + 400);
         messagePanel.add(local);
         messagePanel.add(online);
-        messagePanel.getContentPane().add(jsp);
         // messagepanel creation
         messagePanel.getContentPane().setBackground(Color.BLACK);
         messagePanel.setUndecorated(true);
@@ -175,6 +188,14 @@ public class GamePanel extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setVisible(true);
         setAlwaysOnTop(true);
+        date = new Date();
+        messageArea.append(sDateFormat.format(date)+">>> 本地模式(默认)\n");
+        date = new Date();
+        messageArea.append(sDateFormat.format(date)+">>> 点击下方按钮切换模\n");
+        date = new Date();
+        messageArea.append(sDateFormat.format(date)+">>> 不建议中途切换(BUGs)未修复\n");
+        date = new Date();
+        messageArea.append(sDateFormat.format(date)+">>> Have Fun! 游戏愉快~\n");
     }
 
     public void updatePanel() {
@@ -232,16 +253,31 @@ public class GamePanel extends JFrame implements ActionListener {
             default:
                 break;
         }
-        date= new Date();
-        messageArea.append(sDateFormat.format(date)+"---:: "+whatText(key)+"~~~"+(Integer.parseInt(str)+1)+"\n");
-        if (!signal) {
-            // 点按钮后发送按钮位置,同步两个端之间的信息
-            client.sendMes(str);
-            locked();
+
+        switch (presentmode) {
+            case ONLINE:
+                date = new Date();
+                messageArea.append(sDateFormat.format(date) + "---:: " + whatText(key) + "~~~"
+                        + (Integer.parseInt(str) + 1) + "\n");
+                if (!signal) {
+                    // 点按钮后发送按钮位置,同步两个端之间的信息
+                    client.sendMes(str);
+                    locked();
+                }
+                if (signal) {
+                    signal = false;
+                }
+                break;
+            case LOCAL:
+                date = new Date();
+                messageArea.append(sDateFormat.format(date) + "---:: " + whatText(key) + "~~~"
+                        + (Integer.parseInt(str) + 1) + "\n");
+                decision();
+                break;
+            default:
+                break;
         }
-        if (signal) {
-            signal = false;
-        }
+
         key++;
     }
 
@@ -347,6 +383,31 @@ public class GamePanel extends JFrame implements ActionListener {
         return false;
     }
 
+    // change mode
+    public void changeMode(Mode mode) {
+        switch (mode) {
+            case LOCAL:
+                presentmode = Mode.LOCAL;
+                // change to local mode
+                if (validator!=null)
+                    validator.stop();
+                reset();
+                date = new Date();
+                messageArea.append(sDateFormat.format(date)+">> --成功切换为本地模式--");
+                break;
+            case ONLINE:
+                // change to online mode
+                presentmode = Mode.ONLINE;
+                date = new Date();
+                if(connectServer());
+                messageArea.append(sDateFormat.format(date)+">> --成功连接服务器--");
+                reset();
+                break;
+            default:
+                break;
+        }
+    }
+
     // lock when another player is thinking
     public void locked() {
         for (JButton jButton : buttons) {
@@ -387,28 +448,28 @@ public class GamePanel extends JFrame implements ActionListener {
     public boolean decision() {
         if (judge()) {
             boolean sure = false;
-            date= new Date();
-            messageArea.append("✨※"+sDateFormat.format(date)+"~~~~"+winner+"获胜!\n");
+            date = new Date();
+            messageArea.append("✨※" + sDateFormat.format(date) + "~~~~" + winner + "获胜!\n");
             JOptionPane pane = new JOptionPane("~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
-            JDialog dialog = pane.createDialog(null, "游戏结束!");
+            JDialog dialog = pane.createDialog(getContentPane(), "游戏结束!");
             // JOptionPane.showMessageDialog(null, "~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
             dialog.setLocation(getLocation().x + 500, getLocation().y);
             dialog.setSize(new Dimension(400, 200));
             dialog.setDefaultCloseOperation(0);
             dialog.setVisible(true);
             // validator.stop();
-            //TODO:本意是结束后延迟,判断双方准备就绪再解锁面板,尚未实现
-            do {
-                client.sendMes("ok");
-                locked();
-            } while (client.getMes() == "ok");
+            // TODO:本意是结束后延迟,判断双方准备就绪再解锁面板,尚未实现
+            // do {
+            // client.sendMes("ok");
+            // locked();
+            // } while (client.getMes() == "ok");
             reset();
             return true;
         } else if (!isEmptyButton()) {
             winner = Winner.DRAW;
-            date= new Date();
-            messageArea.append("✨※"+sDateFormat.format(date)+"~~~~"+winner+"-平局了!\n");
-            JOptionPane.showMessageDialog(null, "平局!!点击确定重置游戏!");
+            date = new Date();
+            messageArea.append("✨※" + sDateFormat.format(date) + "~~~~" + winner + "-平局了!\n");
+            JOptionPane.showMessageDialog(getContentPane(), "平局!!点击确定重置游戏!");
             reset();
             return true;
         }
@@ -416,41 +477,46 @@ public class GamePanel extends JFrame implements ActionListener {
         return false;
     }
 
-    class MyButton extends JButton implements ActionListener{
-        public MyButton(){}
-        public MyButton(String title){
+    class MyButton extends JButton implements ActionListener {
+        public MyButton() {
+        }
+
+        public MyButton(String title) {
             super(title);
             setDefault();
         }
-        public void setDefault(){
-            this.setSize(new Dimension(80,30));
-            this.setPreferredSize(new Dimension(80,30));
+
+        public void setDefault() {
+            this.setSize(new Dimension(80, 30));
+            this.setPreferredSize(new Dimension(80, 30));
             this.setBackground(Color.orange);
             this.setVisible(true);
             this.addActionListener(this);
             this.setForeground(Color.RED);
         }
 
-        public void setDynamicLocation(JFrame component,int x){
-            this.setLocation(component.getLocation().x+50+x,component.getLocation().y+400);
+        public void setDynamicLocation(JFrame component, int x) {
+            this.setLocation(component.getLocation().x + 50 + x, component.getLocation().y + 400);
         }
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(e.getActionCommand()=="local"){
+            if (e.getActionCommand() == "local") {
                 System.out.println("进入本地模式");
+                changeMode(Mode.LOCAL);
                 local.setEnabled(false);
                 online.setEnabled(true);
-            }else if(e.getActionCommand()=="online"){
+            } else if (e.getActionCommand() == "online") {
                 System.out.println("进入在线模式");
+                changeMode(Mode.ONLINE);
                 local.setEnabled(true);
                 online.setEnabled(false);
             }
 
         }
 
-
     }
+
     class Blinker implements ActionListener {
         int one, two, three, i = 0;
         boolean on = true;

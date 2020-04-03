@@ -33,7 +33,7 @@ public class Client {
         this.hostname = hostname;
     }
 
-    public void execute() {
+    public boolean execute() {
         try {
             Socket socket = new Socket(hostname, port);
 
@@ -48,7 +48,9 @@ public class Client {
 
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
     public void sendMes(String mes) {
