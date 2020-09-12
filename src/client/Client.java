@@ -1,3 +1,5 @@
+package client;
+
 import java.io.*;
 import java.net.*;
 
@@ -24,6 +26,12 @@ public class Client {
     private String msg;
 
     public static void main(String[] args) {
+        try {
+            new Client("192.168.43.11").execute();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     public Client() {
@@ -33,7 +41,7 @@ public class Client {
         this.hostname = hostname;
     }
 
-    public boolean execute() {
+    public boolean execute() throws Exception {
         try {
             Socket socket = new Socket(hostname, port);
 
@@ -48,7 +56,7 @@ public class Client {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            throw new Exception();
         }
         return true;
     }

@@ -1,3 +1,5 @@
+package server;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,18 +31,18 @@ public class Server {
     public void execute() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server is listening on port:" + port);
-                Socket socket = serverSocket.accept();
-                System.out.print("new Client connected" + "---");
+            Socket socket = serverSocket.accept();
+            System.out.print("new Client connected" + "---");
 
-                ClientThread clientThread = new ClientThread(socket, this);
-                clientThreads.add(clientThread);
-                clients.add(clientThread.getGenerateID());
-                clientThread.start();
-                System.out.println("id:" + clientThread.getGenerateID());
+            ClientThread clientThread = new ClientThread(socket, this);
+            clientThreads.add(clientThread);
+            clients.add(clientThread.getGenerateID());
+            clientThread.start();
+            System.out.println("id:" + clientThread.getGenerateID());
 
-                for (ClientThread client : clientThreads) {
-                    System.out.println(client.getGenerateID());
-                }
+            for (ClientThread client : clientThreads) {
+                System.out.println(client.getGenerateID());
+            }
         } catch (Exception e) {
             // TODO: handle exception
         }
@@ -93,7 +95,7 @@ class ClientThread extends Thread {
             OutputStream out = socket.getOutputStream();
             writer = new PrintWriter(out, true);
 
-            String serverMessage = "New user connected: ";
+            String serverMessage = "New client connected: ";
             server.broadcast(serverMessage, this);
 
             String clientMessage;
@@ -102,10 +104,15 @@ class ClientThread extends Thread {
                     clientMessage = reader.readLine();
                     serverMessage = "[" + "]: " + clientMessage;
                     server.broadcast(serverMessage, this);
-
+                    if (clientMessage == null)
+                        clientMessage = "END";
                 } while (!clientMessage.equals("END"));
             }
-            server.removeClient(this.getGenerateID(), this);
+            try {
+                server.removeClient(this.getGenerateID(), this);
+            } catch (Exception e) {
+                System.out.println("客户端异常退出-");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             // TODO: handle exception

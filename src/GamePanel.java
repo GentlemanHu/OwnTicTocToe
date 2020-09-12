@@ -3,7 +3,7 @@
  * @Author: Gentleman.Hu 
  * @Date: 2020-03-28 22:25:49 
  * @Last Modified by: Gentleman.Hu
- * @Last Modified time: 2020-03-31 22:30:35
+ * @Last Modified time: 2020-04-06 14:17:43
  */
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -15,6 +15,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.text.DefaultCaret;
 
 import java.awt.event.*;
 import java.text.SimpleDateFormat;
@@ -22,10 +25,16 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.awt.*;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.*;
+
+import client.Client;
 
 /**
  * GamePanel
@@ -42,18 +51,19 @@ public class GamePanel extends JFrame implements ActionListener {
     private static JButton[] buttons = new JButton[9];
     private static MyButton local, online;
     private static int key = 0;
-    private static boolean signal = false;
+    private static boolean signal = false, initServer = true;
     private volatile Blinker blinker;
     private volatile static Timer timer;
-    JTextArea messageArea;
+    private JTextArea messageArea;
     private Date date;
-    SimpleDateFormat sDateFormat = new SimpleDateFormat("hh:mm:ss");
+    private SimpleDateFormat sDateFormat = new SimpleDateFormat("hh:mm:ss");
     private static Thread validator;
-    private static ArrayList<String> list, buttonlist;
-    private static Client client = new Client("123.57.248.202");
+    private static ArrayList<String> list = new ArrayList<String>(), buttonlist;
+    private static Client client;
     private static ArrayList<Timer> timers = new ArrayList<Timer>();
     private static Calendar calendar = Calendar.getInstance();
     private static Mode presentmode = Mode.LOCAL;
+    private static String host = "192.168.43.236";
 
     enum Winner {
         O, X, DRAW;
@@ -64,12 +74,26 @@ public class GamePanel extends JFrame implements ActionListener {
     }
 
     public GamePanel() {
+        init();
+        // 设置观感
         // try {
-        // UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel");
-        // } catch (Exception e) {
+        // System.setProperty("apple.laf.useScreenMenuBar", "true");
+        // System.setProperty("com.apple.mrj.application.apple.menu.about.name",
+        // "WikiTeX");
+        // UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        // } catch (ClassNotFoundException e) {
+        // // TODO Auto-generated catch block
+        // e.printStackTrace();
+        // } catch (InstantiationException e) {
+        // // TODO Auto-generated catch block
+        // e.printStackTrace();
+        // } catch (IllegalAccessException e) {
+        // // TODO Auto-generated catch block
+        // e.printStackTrace();
+        // } catch (UnsupportedLookAndFeelException e) {
+        // // TODO Auto-generated catch block
         // e.printStackTrace();
         // }
-        init();
     }
 
     private void init() {
@@ -81,8 +105,8 @@ public class GamePanel extends JFrame implements ActionListener {
     }
 
     public boolean connectServer() {
-        boolean ok=client.execute();
-        
+        client = new Client(host);
+
         validator = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -100,22 +124,35 @@ public class GamePanel extends JFrame implements ActionListener {
 
                         updatePanel();
                     }
-                    if (decision()) {
-                        // 再重置上次传送的信息,防止点击确定后又发送,导致按钮初始化时点击上次最后的按钮
-                        client.setMessage2null();
-                        continue;
+                    if(list.size()!=0){
+                        initServer = false;
+                    }
+                    // TODO:local 和online用同一套判定,有些问题
+                    if (!initServer) {
+                        if (decision()) {
+                            // 再重置上次传送的信息,防止点击确定后又发送,导致按钮初始化时点击上次最后的按钮
+                            client.setMessage2null();
+                            continue;
+                        }
                     }
                 }
             }
         });
-        validator.start();
+        boolean ok;
+        // 把启动服务器放在后边,防止数组溢出
+        try {
+            ok = client.execute();
+        } catch (Exception e) {
+            ok = false;
+            messageArea.append(sDateFormat.format(date) + ">>> 服务器连接失败,已切换为<本地>模式,请重试.\n");
+            local.doClick();
+        }
 
-        return ok?true:false;
+        return ok ? true : false;
     }
 
     public void rendPanel() {
         this.rootPane.setPreferredSize(new Dimension(500, 500));
-
         // gamepanel creation
         gamePanel.setVisible(true);
         gamePanel.setLayout(new GridLayout(3, 3));
@@ -124,7 +161,7 @@ public class GamePanel extends JFrame implements ActionListener {
         for (int i = 0; i < 9; i++) {
             buttons[i] = new JButton();
             buttons[i].setSize(500 / 3, 500 / 3);
-            buttons[i].setText("");
+            buttons[i].setText(" ");
             buttons[i].addActionListener(this);
             buttons[i].setActionCommand("" + i);
             buttons[i].setFont(new Font("Fira Code", 0, 90));
@@ -143,15 +180,22 @@ public class GamePanel extends JFrame implements ActionListener {
         messageArea.setWrapStyleWord(false);
         messageArea.setLocation(messagePanel.getLocation().x, messagePanel.getLocation().x);
         messageArea.setFont(new Font("Fira Code", 0, 15));
-        messageArea.setForeground(Color.BLUE);
+        messageArea.setForeground(Color.WHITE);
         JScrollPane jsp = new JScrollPane(messageArea);
 
         jsp.setSize(200, 380);
         jsp.setBorder(null);
-        jsp.setAutoscrolls(true);
+        jsp.setWheelScrollingEnabled(true);
         jsp.setLocation(messagePanel.getLocation().x, messagePanel.getLocation().x);
         jsp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-        //jsp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+        jsp.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
+            public void adjustmentValueChanged(AdjustmentEvent e) {
+                e.getAdjustable().setValue(e.getAdjustable().getMaximum());
+            }
+        });
+        DefaultCaret caret = (DefaultCaret) messageArea.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        jsp.setAutoscrolls(true);
         messagePanel.getContentPane().add(jsp);
 
         // add mode change button
@@ -160,6 +204,7 @@ public class GamePanel extends JFrame implements ActionListener {
         online = new MyButton("在线玩");
         online.setActionCommand("online");
 
+        local.setEnabled(false);
         local.setLocation(messagePanel.getLocation().x + 20, messagePanel.getLocation().y + 400);
         online.setLocation(messagePanel.getLocation().x + 100, messagePanel.getLocation().y + 400);
         messagePanel.add(local);
@@ -171,14 +216,12 @@ public class GamePanel extends JFrame implements ActionListener {
         messagePanel.setSize(new Dimension(200, 500));
         messagePanel.setVisible(true);
         messagePanel.setAlwaysOnTop(true);
+        messagePanel.setFocusableWindowState(true);
 
         add(gamePanel);
         addComponentListener(new ComponentAdapter() {
             public void componentMoved(ComponentEvent e) {
                 messagePanel.setLocation(getLocation().x - 200, getLocation().y + 20);
-                // local.setDynamicLocation(messagePanel,0);
-                // online.setDynamicLocation(messagePanel,50);
-                // System.out.println("nice!");
             }
         });
         setTitle("TicTocToe~~      made with love by Gentleman.Hu");
@@ -189,13 +232,13 @@ public class GamePanel extends JFrame implements ActionListener {
         setVisible(true);
         setAlwaysOnTop(true);
         date = new Date();
-        messageArea.append(sDateFormat.format(date)+">>> 本地模式(默认)\n");
+        messageArea.append(sDateFormat.format(date) + ">>> 本地模式(默认)\n");
         date = new Date();
-        messageArea.append(sDateFormat.format(date)+">>> 点击下方按钮切换模\n");
+        messageArea.append(sDateFormat.format(date) + ">>> 点击下方按钮切换模\n");
         date = new Date();
-        messageArea.append(sDateFormat.format(date)+">>> 不建议中途切换(BUGs)未修复\n");
+        messageArea.append(sDateFormat.format(date) + ">>> 不建议中途切换(BUGs)未修复\n");
         date = new Date();
-        messageArea.append(sDateFormat.format(date)+">>> Have Fun! 游戏愉快~\n");
+        messageArea.append(sDateFormat.format(date) + ">>> Have Fun! 游戏愉快~\n");
     }
 
     public void updatePanel() {
@@ -210,8 +253,6 @@ public class GamePanel extends JFrame implements ActionListener {
         // TODO Auto-generated method stub
         String str = e.getActionCommand();
 
-        // System.out.println(str);
-        //
         buttonlist.remove(str);
         switch (str) {
             case "0":
@@ -292,8 +333,9 @@ public class GamePanel extends JFrame implements ActionListener {
     public boolean judge() {
         list = new ArrayList<String>();
 
-        for (int i = 8; i >= 0; i--) {
-            list.add(buttons[i].getText());
+        for (int i = buttons.length - 1; i >= 0; i--) {
+            list.add((buttons[i].getText()));
+            System.out.println(buttons[i].getText()+"<--from button");
         }
 
         // 打印已经走得信息
@@ -357,7 +399,7 @@ public class GamePanel extends JFrame implements ActionListener {
             timer.stop();
             timer = null;
         }
-        messageArea.setForeground(Color.BLUE);
+        messageArea.setForeground(Color.WHITE);
         // validator.start();
         buttonlist = new ArrayList<String>();
         list = new ArrayList<String>();
@@ -389,18 +431,29 @@ public class GamePanel extends JFrame implements ActionListener {
             case LOCAL:
                 presentmode = Mode.LOCAL;
                 // change to local mode
-                if (validator!=null)
-                    validator.stop();
+                if (validator != null)
+                    try {
+                        validator.join();
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                ;
                 reset();
                 date = new Date();
-                messageArea.append(sDateFormat.format(date)+">> --成功切换为本地模式--");
+                messageArea.append(sDateFormat.format(date) + ">> --成功切换为本地模式--\n");
                 break;
             case ONLINE:
                 // change to online mode
                 presentmode = Mode.ONLINE;
+                initServer = true;
+                setHostAddr();
+
                 date = new Date();
-                if(connectServer());
-                messageArea.append(sDateFormat.format(date)+">> --成功连接服务器--");
+                if (connectServer()) {
+                    validator.start();
+                    messageArea.append(sDateFormat.format(date) + ">> --成功连接服务器--\n");
+                }
                 reset();
                 break;
             default:
@@ -449,7 +502,7 @@ public class GamePanel extends JFrame implements ActionListener {
         if (judge()) {
             boolean sure = false;
             date = new Date();
-            messageArea.append("✨※" + sDateFormat.format(date) + "~~~~" + winner + "获胜!\n");
+            messageArea.append("※※" + sDateFormat.format(date) + "~~~~" + winner + "获胜!\n");
             JOptionPane pane = new JOptionPane("~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
             JDialog dialog = pane.createDialog(getContentPane(), "游戏结束!");
             // JOptionPane.showMessageDialog(null, "~~" + winner + "~~获胜,游戏结束,点击确定重置游戏!");
@@ -468,13 +521,28 @@ public class GamePanel extends JFrame implements ActionListener {
         } else if (!isEmptyButton()) {
             winner = Winner.DRAW;
             date = new Date();
-            messageArea.append("✨※" + sDateFormat.format(date) + "~~~~" + winner + "-平局了!\n");
+            messageArea.append("※※" + sDateFormat.format(date) + "~~~~" + winner + "-平局了!\n");
             JOptionPane.showMessageDialog(getContentPane(), "平局!!点击确定重置游戏!");
             reset();
             return true;
         }
 
         return false;
+    }
+
+    // wrap some steps with multi connection msgs
+    public void setHostAddr() {
+        do {
+            String tmphost = JOptionPane.showInputDialog(getRootPane(), "请输入host信息(ip地址)");
+            if (tmphost == null || tmphost.isEmpty()) {
+                date = new Date();
+                messageArea.append(sDateFormat.format(date) + ">> --使用默认阿里服务器--\n");
+            } else {
+                if (isIP(tmphost))
+                    host = tmphost;
+
+            }
+        } while (host.isEmpty());
     }
 
     class MyButton extends JButton implements ActionListener {
@@ -491,7 +559,7 @@ public class GamePanel extends JFrame implements ActionListener {
             this.setPreferredSize(new Dimension(80, 30));
             this.setBackground(Color.orange);
             this.setVisible(true);
-            this.addActionListener(this);
+            this.addActionListener(MyButton.this);
             this.setForeground(Color.RED);
         }
 
@@ -515,6 +583,25 @@ public class GamePanel extends JFrame implements ActionListener {
 
         }
 
+    }
+
+    // 判断是否是ip地址
+    public boolean isIP(String addr) {
+        if (addr.length() < 7 || addr.length() > 15 || "".equals(addr)) {
+            return false;
+        }
+        /**
+         * 判断IP格式和范围
+         */
+        String rexp = "([1-9]|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])(\\.(\\d|[1-9]\\d|1\\d{2}|2[0-4]\\d|25[0-5])){3}";
+
+        Pattern pat = Pattern.compile(rexp);
+
+        Matcher mat = pat.matcher(addr);
+
+        boolean ipAddress = mat.find();
+
+        return ipAddress;
     }
 
     class Blinker implements ActionListener {

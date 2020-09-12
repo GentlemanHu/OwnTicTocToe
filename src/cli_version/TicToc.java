@@ -1,3 +1,4 @@
+package cli_version;
 
 /*
  * @Author: Gentleman.Hu 
@@ -31,7 +32,7 @@ public class TicToc {
                 int index = scanner.nextInt();
                 if (index > 9) {
                     System.out.println("数值必须为1-9");
-                    turn-=turn;
+                    turn -= turn;
                     continue;
                 }
                 if (turn % 2 == 0) {
@@ -75,57 +76,39 @@ public class TicToc {
         switch (index) {
             case 1:
                 rindex = 1;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 2:
                 rindex = 4;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 3:
                 rindex = 7;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 4:
                 rindex = 11;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 5:
                 rindex = 14;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 6:
                 rindex = 17;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 7:
                 rindex = 21;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 8:
                 rindex = 24;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             case 9:
                 rindex = 27;
-                if (canSet(rindex)) {
-                    map.set(rindex, symbol);
-                }
+                trySetSymbol(rindex, symbol);
                 break;
             default:
                 break;
@@ -167,6 +150,15 @@ public class TicToc {
             return Winner.Draw;
         }
         return null;
+    }
+
+    private static void trySetSymbol(int rindex, String symbol) {
+        if (canSet(rindex)) {
+            map.set(rindex, symbol);
+        } else {
+            System.out.println("此位置不可走,换个地儿~");
+            turn--;
+        }
     }
 
     private static boolean getEle(int i1, int i2, int i3) {
