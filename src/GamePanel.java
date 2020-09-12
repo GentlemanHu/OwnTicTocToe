@@ -3,7 +3,7 @@
  * @Author: Gentleman.Hu 
  * @Date: 2020-03-28 22:25:49 
  * @Last Modified by: Gentleman.Hu
- * @Last Modified time: 2020-04-06 14:17:43
+ * @Last Modified time: 2020-09-12 20:42:48
  */
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -124,7 +124,7 @@ public class GamePanel extends JFrame implements ActionListener {
 
                         updatePanel();
                     }
-                    if(list.size()!=0){
+                    if (list.size() != 0) {
                         initServer = false;
                     }
                     // TODO:local 和online用同一套判定,有些问题
@@ -161,7 +161,7 @@ public class GamePanel extends JFrame implements ActionListener {
         for (int i = 0; i < 9; i++) {
             buttons[i] = new JButton();
             buttons[i].setSize(500 / 3, 500 / 3);
-            buttons[i].setText(" ");
+            buttons[i].setText("");
             buttons[i].addActionListener(this);
             buttons[i].setActionCommand("" + i);
             buttons[i].setFont(new Font("Fira Code", 0, 90));
@@ -204,7 +204,9 @@ public class GamePanel extends JFrame implements ActionListener {
         online = new MyButton("在线玩");
         online.setActionCommand("online");
 
+        online.setForeground(Color.GREEN);
         local.setEnabled(false);
+        local.setForeground(Color.GREEN);
         local.setLocation(messagePanel.getLocation().x + 20, messagePanel.getLocation().y + 400);
         online.setLocation(messagePanel.getLocation().x + 100, messagePanel.getLocation().y + 400);
         messagePanel.add(local);
@@ -335,7 +337,7 @@ public class GamePanel extends JFrame implements ActionListener {
 
         for (int i = buttons.length - 1; i >= 0; i--) {
             list.add((buttons[i].getText()));
-            System.out.println(buttons[i].getText()+"<--from button");
+            System.out.println(buttons[i].getText() + "<--from button");
         }
 
         // 打印已经走得信息
@@ -447,14 +449,17 @@ public class GamePanel extends JFrame implements ActionListener {
                 // change to online mode
                 presentmode = Mode.ONLINE;
                 initServer = true;
-                setHostAddr();
-
-                date = new Date();
-                if (connectServer()) {
-                    validator.start();
-                    messageArea.append(sDateFormat.format(date) + ">> --成功连接服务器--\n");
+                if (setHostAddr()) {
+                    date = new Date();
+                    if (connectServer()) {
+                        validator.start();
+                        messageArea.append(sDateFormat.format(date) + ">> --成功连接服务器--\n");
+                    }
+                    reset();
+                }else{
+                    local.setEnabled(false);
+                    online.setEnabled(true);
                 }
-                reset();
                 break;
             default:
                 break;
@@ -531,18 +536,27 @@ public class GamePanel extends JFrame implements ActionListener {
     }
 
     // wrap some steps with multi connection msgs
-    public void setHostAddr() {
+    public boolean setHostAddr() {
+        boolean cancel = false;
+        String tmphost = null;
         do {
-            String tmphost = JOptionPane.showInputDialog(getRootPane(), "请输入host信息(ip地址)");
-            if (tmphost == null || tmphost.isEmpty()) {
-                date = new Date();
-                messageArea.append(sDateFormat.format(date) + ">> --使用默认阿里服务器--\n");
+            tmphost = String.valueOf(JOptionPane.showInputDialog(getRootPane(), "请输入host信息(ip地址)"));
+            System.out.println(tmphost + "<---");
+            if (tmphost == null || tmphost == "null") {
+                System.out.println("取消操作,返回本地模式");
+                cancel = true;
+                return false;
             } else {
-                if (isIP(tmphost))
+                if (isIP(tmphost)) {
                     host = tmphost;
-
+                    return true;
+                } else {
+                    System.out.println("地址无效,请重新输入~");
+                    continue;
+                }
             }
-        } while (host.isEmpty());
+        } while (!cancel);
+        return true;
     }
 
     class MyButton extends JButton implements ActionListener {
@@ -571,14 +585,18 @@ public class GamePanel extends JFrame implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             if (e.getActionCommand() == "local") {
                 System.out.println("进入本地模式");
-                changeMode(Mode.LOCAL);
                 local.setEnabled(false);
                 online.setEnabled(true);
+                local.setBackground(Color.PINK);
+                online.setBackground(Color.GRAY);
+                changeMode(Mode.LOCAL);
             } else if (e.getActionCommand() == "online") {
                 System.out.println("进入在线模式");
-                changeMode(Mode.ONLINE);
                 local.setEnabled(true);
                 online.setEnabled(false);
+                local.setBackground(Color.gray);
+                online.setBackground(Color.PINK);
+                changeMode(Mode.ONLINE);
             }
 
         }
