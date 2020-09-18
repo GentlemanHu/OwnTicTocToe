@@ -220,6 +220,14 @@ public class GamePanel extends JFrame implements ActionListener {
                 messagePanel.setLocation(getLocation().x - 200, getLocation().y + 20);
             }
         });
+        addWindowListener((new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                super.windowClosing(e);
+                client.sendMes("END");
+                client.closeSocket();
+            }
+        }));
         setTitle("TicTocToe~~      made with love by Gentleman.Hu");
         setResizable(false);
         setDefaultCloseOperation(3);
@@ -429,8 +437,9 @@ public class GamePanel extends JFrame implements ActionListener {
                 // change to local mode
                 if (validator != null)
                     try {
-                        validator.join();
-                    } catch (InterruptedException e) {
+                        // force stop ,not join
+                        validator.stop();
+                    } catch (Exception e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
                     }

@@ -2,21 +2,24 @@ package god.hu.client;
 
 import java.io.*;
 import java.net.*;
+import java.util.Objects;
 
 /*
- * @Author: Gentleman.Hu 
- * @Date: 2020-03-31 11:32:56 
+ * @Author: Gentleman.Hu
+ * @Date: 2020-03-31 11:32:56
  * @Last Modified by: Gentleman.Hu
  * @Last Modified time: 2020-03-31 22:29:05
  */
 /**
  * Client
  */
+
 /**
  * Client
  */
 public class Client {
     private String hostname;
+    private Socket socket;
     private final static int port = 3839;
     private String clientID;
     private WriteThread writeThread;
@@ -43,7 +46,7 @@ public class Client {
 
     public boolean execute() throws Exception {
         try {
-            Socket socket = new Socket(hostname, port);
+            socket = new Socket(hostname, port);
 
             readThread = new ReadThread(socket, this);
             writeThread = new WriteThread(socket, this);
@@ -59,6 +62,16 @@ public class Client {
             throw new Exception();
         }
         return true;
+    }
+
+    public void closeSocket() {
+        try {
+            this.readThread.join();
+            this.writeThread.join();
+            this.socket.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendMes(String mes) {
@@ -99,15 +112,6 @@ public class Client {
                     if (response != null && response != "") {
                         msg = response;
                     }
-
-                    // buttons[Integer.parseInt(msg)].doClick();
-                    // buttons[Integer.parseInt(msg)].setEnabled(false);
-                    // System.out.println("\n" + response);
-
-                    // prints the username after displaying the god.hu.server's message
-                    // if (god.hu.client.getUserName() != null) {
-                    // System.out.print("[" + god.hu.client.getUserName() + "]: ");
-                    // }
                 } catch (IOException ex) {
                     System.out.println("Error reading from god.hu.server: " + ex.getMessage());
                     ex.printStackTrace();
@@ -148,18 +152,22 @@ public class Client {
         }
 
         public void run() {
-            Console console = System.console();
+            //Console console = System.console();
+
             // String userName = console.readLine("\nEnter your name: ");
             // writer.println(userName);
 
             String text;
-
-            do {
-                text = console.readLine();
-                if (text != null && text != "")
-                    writer.println(text);
-            } while (!text.equals("END"));
-
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                do {
+                    text = reader.readLine();
+                    if (text != null && !text.equals(""))
+                        writer.println(text);
+                }
+                while (!Objects.equals(text, "END"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             try {
                 socket.close();
                 System.exit(0);

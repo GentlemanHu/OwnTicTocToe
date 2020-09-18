@@ -10,8 +10,8 @@ import java.net.Socket;
 import java.util.*;
 
 /*
- * @Author: Gentleman.Hu 
- * @Date: 2020-03-31 15:05:27 
+ * @Author: Gentleman.Hu
+ * @Date: 2020-03-31 15:05:27
  * @Last Modified by: Gentleman.Hu
  * @Last Modified time: 2020-03-31 20:21:12
  */
@@ -31,17 +31,19 @@ public class Server {
     public void execute() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server is listening on port:" + port);
-            Socket socket = serverSocket.accept();
-            System.out.print("new Client connected" + "---");
+            for (; ; ) {
+                Socket socket = serverSocket.accept();
+                System.out.print("new Client connected" + "---");
 
-            ClientThread clientThread = new ClientThread(socket, this);
-            clientThreads.add(clientThread);
-            clients.add(clientThread.getGenerateID());
-            clientThread.start();
-            System.out.println("id:" + clientThread.getGenerateID());
+                ClientThread clientThread = new ClientThread(socket, this);
+                clientThreads.add(clientThread);
+                clients.add(clientThread.getGenerateID());
+                clientThread.start();
+                System.out.println("id:" + clientThread.getGenerateID());
 
-            for (ClientThread client : clientThreads) {
-                System.out.println(client.getGenerateID());
+                for (ClientThread client : clientThreads) {
+                    System.out.println(client.getGenerateID());
+                }
             }
         } catch (Exception e) {
             // TODO: handle exception
@@ -63,6 +65,10 @@ public class Server {
     void removeClient(String id, ClientThread clientThread) {
         boolean removed = clients.remove(id);
         if (removed) {
+            for (ClientThread thread : clientThreads) {
+                if(thread.getGenerateID()==id)
+                    thread.stop();
+            }
             clientThreads.remove(clientThread);
         }
         System.out.println("成功下机:" + id);
@@ -100,13 +106,9 @@ class ClientThread extends Thread {
 
             String clientMessage;
             while (!socket.isClosed()) {
-                do {
                     clientMessage = reader.readLine();
-                    serverMessage = "[" + "]: " + clientMessage;
+                    serverMessage = "[" +this+ "]: " + clientMessage;
                     server.broadcast(serverMessage, this);
-                    if (clientMessage == null)
-                        clientMessage = "END";
-                } while (!clientMessage.equals("END"));
             }
             try {
                 server.removeClient(this.getGenerateID(), this);
