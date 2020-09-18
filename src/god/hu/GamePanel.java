@@ -1,4 +1,4 @@
-
+package god.hu;
 /*
  * @Author: Gentleman.Hu 
  * @Date: 2020-03-28 22:25:49 
@@ -6,7 +6,6 @@
  * @Last Modified time: 2020-09-12 20:42:48
  */
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -15,8 +14,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.Timer;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.text.DefaultCaret;
 
 import java.awt.event.*;
@@ -24,20 +21,17 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.awt.*;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.*;
 
-import client.Client;
+import god.hu.client.Client;
 
 /**
- * GamePanel
+ * god.hu.GamePanel
  */
 public class GamePanel extends JFrame implements ActionListener {
 
@@ -518,9 +512,9 @@ public class GamePanel extends JFrame implements ActionListener {
             // validator.stop();
             // TODO:本意是结束后延迟,判断双方准备就绪再解锁面板,尚未实现
             // do {
-            // client.sendMes("ok");
+            // god.hu.client.sendMes("ok");
             // locked();
-            // } while (client.getMes() == "ok");
+            // } while (god.hu.client.getMes() == "ok");
             reset();
             return true;
         } else if (!isEmptyButton()) {

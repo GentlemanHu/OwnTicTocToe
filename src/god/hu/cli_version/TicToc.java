@@ -1,4 +1,4 @@
-package cli_version;
+package god.hu.cli_version;
 
 /*
  * @Author: Gentleman.Hu 

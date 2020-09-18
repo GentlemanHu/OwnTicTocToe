@@ -1,4 +1,4 @@
-package client;
+package god.hu.client;
 
 import java.io.*;
 import java.net.*;
@@ -52,7 +52,7 @@ public class Client {
 
             reader = readThread.getReader();
             writer = writeThread.getSender();
-            System.out.println("Connected to the server");
+            System.out.println("Connected to the god.hu.server");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -104,12 +104,12 @@ public class Client {
                     // buttons[Integer.parseInt(msg)].setEnabled(false);
                     // System.out.println("\n" + response);
 
-                    // prints the username after displaying the server's message
-                    // if (client.getUserName() != null) {
-                    // System.out.print("[" + client.getUserName() + "]: ");
+                    // prints the username after displaying the god.hu.server's message
+                    // if (god.hu.client.getUserName() != null) {
+                    // System.out.print("[" + god.hu.client.getUserName() + "]: ");
                     // }
                 } catch (IOException ex) {
-                    System.out.println("Error reading from server: " + ex.getMessage());
+                    System.out.println("Error reading from god.hu.server: " + ex.getMessage());
                     ex.printStackTrace();
                     break;
                 }
@@ -165,7 +165,7 @@ public class Client {
                 System.exit(0);
             } catch (IOException ex) {
 
-                System.out.println("Error writing to server: " + ex.getMessage());
+                System.out.println("Error writing to god.hu.server: " + ex.getMessage());
             }
         }
 

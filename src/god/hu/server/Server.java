@@ -1,4 +1,4 @@
-package server;
+package god.hu.server;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -95,7 +95,7 @@ class ClientThread extends Thread {
             OutputStream out = socket.getOutputStream();
             writer = new PrintWriter(out, true);
 
-            String serverMessage = "New client connected: ";
+            String serverMessage = "New god.hu.client connected: ";
             server.broadcast(serverMessage, this);
 
             String clientMessage;

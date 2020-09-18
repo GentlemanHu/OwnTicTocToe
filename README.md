@@ -2,7 +2,7 @@
 
 > 只是强行实现,未考虑各种设计原则和模式,比较乱.后期可能重新实现,作为对比学习.
 
-TODO: GamePanel UI 和 逻辑分离,目前整合在一块 
+TODO: god.hu.GamePanel UI 和 逻辑分离,目前整合在一块 
 
 - 游戏面板:
   - [x] 九宫格
@@ -58,10 +58,10 @@ TODO: GamePanel UI 和 逻辑分离,目前整合在一块
         java.lang.IndexOutOfBoundsException: Index: 3, Size: 0
         at java.util.ArrayList.rangeCheck(ArrayList.java:657)
         at java.util.ArrayList.get(ArrayList.java:433)
-        at GamePanel.getStr(GamePanel.java:405)
-        at GamePanel.judge(GamePanel.java:339)
-        at GamePanel.decision(GamePanel.java:494)
-        at GamePanel$1.run(GamePanel.java:125)
+        at god.hu.GamePanel.getStr(god.hu.GamePanel.java:405)
+        at god.hu.GamePanel.judge(god.hu.GamePanel.java:339)
+        at god.hu.GamePanel.decision(god.hu.GamePanel.java:494)
+        at god.hu.GamePanel$1.run(god.hu.GamePanel.java:125)
         at java.lang.Thread.run(Thread.java:748)
 ```
 

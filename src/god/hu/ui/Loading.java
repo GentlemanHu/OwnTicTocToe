@@ -1,4 +1,4 @@
-package ui;
+package god.hu.ui;
 
 import javax.swing.JLabel;
 import java.awt.Color;
@@ -14,7 +14,7 @@ public class Loading extends JLabel {
 
 	static {
 		try {
-			icon = new ImageIcon(Loading.class.getResource("../res/ajax-loader.gif"));
+			icon = new ImageIcon(Loading.class.getResource("../god.hu.res/ajax-loader.gif"));
 			System.out.println(icon);
 			if (icon == null) {
 				throw new Exception();

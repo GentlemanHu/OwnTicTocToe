@@ -1,19 +1,17 @@
-import java.awt.Color;
+package god.hu;
 
-import javax.swing.ImageIcon;
+import god.hu.ui.Loading;
+
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import java.awt.event.*;
-import cli_version.*;
 /*
  * @Author: Gentleman.Hu 
  * @Date: 2020-02-25 11:47:03 
  * @Last Modified by: Gentleman.Hu
  * @Last Modified time: 2020-09-09 21:12:22
  */
-import ui.Loading;
 /**
- * Main
+ * god.hu.Main
  */
 public class Main {
     static GamePanel gamePanel;
@@ -24,7 +22,7 @@ public class Main {
     } 
 
     public static void testLoad(){
-        Loading loading;       
+        Loading loading;
         JFrame frame = new JFrame("Test");
         loading =Loading.loadNow();
         frame.add(loading);
